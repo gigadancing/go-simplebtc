@@ -36,3 +36,8 @@ func (b *Block) SetHash() {
 	hash := sha256.Sum256(data)                                        // 进行哈希
 	b.Hash = hash[:]
 }
+
+// 生成创世区块
+func CreateGenesisBlock(data string) *Block {
+	return NewBlock(0, nil, []byte(data))
+}
