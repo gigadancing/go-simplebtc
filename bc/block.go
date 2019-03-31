@@ -11,6 +11,7 @@ import (
 type Block struct {
 	Timestamp  int64  // 时间戳，区块产生的时间
 	Number     int64  // 区块高度（索引、ID）
+	Nonce      int64  //
 	ParentHash []byte // 父区块哈希
 	Hash       []byte // 当前区块哈希
 	Data       []byte // 交易数据
@@ -18,14 +19,18 @@ type Block struct {
 
 // 创建区块
 func NewBlock(num int64, parentHash []byte, data []byte) *Block {
-	b := Block{
+	block := Block{
 		Number:     num,
 		ParentHash: parentHash,
 		Data:       data,
 		Timestamp:  time.Now().Unix(),
 	}
-	b.SetHash()
-	return &b
+	//b.SetHash()
+	pow := NewPOW(&block)
+	hash, nonce := pow.Run() // 进行工作量证明
+	block.Hash = hash
+	block.Nonce = nonce
+	return &block
 }
 
 // 计算区块哈希
