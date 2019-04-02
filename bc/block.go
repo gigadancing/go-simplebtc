@@ -3,6 +3,8 @@ package bc
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/gob"
+	"log"
 	"simplebtc/util"
 	"time"
 )
@@ -45,4 +47,23 @@ func (b *Block) SetHash() {
 // 生成创世区块
 func CreateGenesisBlock(data string) *Block {
 	return NewBlock(0, nil, []byte(data))
+}
+
+// 序列化，把区块结构序列化为字节数组([]byte)
+func (b *Block) Serialize() []byte {
+	var data bytes.Buffer
+	encoder := gob.NewEncoder(&data)          // 创建encoder对象
+	if err := encoder.Encode(b); err != nil { // 编码
+		log.Panicf("serialize block failed:%v\n", err)
+	}
+	return data.Bytes()
+}
+
+// 反序列化，把字节数组结构化为区块
+func (b *Block) Deserialize(data []byte) *Block {
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	if err := decoder.Decode(b); err != nil {
+		log.Panicf("deserialize block failed:%v\n", err)
+	}
+	return b
 }
