@@ -2,19 +2,31 @@ package bc
 
 import (
 	"fmt"
+	"github.com/boltdb/bolt"
 	"simplebtc/util"
 	"testing"
 )
 
 func TestBlockChain(t *testing.T) {
-	bc := NewBlockChain()
-	bc.InsertBlock(int64(len(bc.Blocks)), bc.Blocks[len(bc.Blocks)-1].Hash, []byte("Alice send 100 to Bob"))
-	bc.InsertBlock(int64(len(bc.Blocks)), bc.Blocks[len(bc.Blocks)-1].Hash, []byte("Alice send 1 to Kevin"))
-	bc.InsertBlock(int64(len(bc.Blocks)), bc.Blocks[len(bc.Blocks)-1].Hash, []byte("Kevin send 2 to Tom"))
-	bc.InsertBlock(int64(len(bc.Blocks)), bc.Blocks[len(bc.Blocks)-1].Hash, []byte("Alice send 3 to Bob"))
-	bc.InsertBlock(int64(len(bc.Blocks)), bc.Blocks[len(bc.Blocks)-1].Hash, []byte("Alice send 4 to Bob"))
-	fmt.Println("len:", len(bc.Blocks))
-	for _, b := range bc.Blocks {
-		fmt.Printf("%d : %v : %v\n", b.Number, util.HexToString(b.ParentHash), util.HexToString(b.Hash))
+	blockchain := NewBlockChain()
+	defer blockchain.DB.Close()
+	err := blockchain.DB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(blockTableName))
+		if bucket != nil {
+			value := bucket.Get([]byte("latest"))
+			fmt.Printf("value:%v\n", util.HexToString(value))
+		} else {
+			fmt.Println("the bucket is nil")
+		}
+		return nil
+	})
+
+	if err != nil {
+		t.Fatalf("blockchain view failed:%v\n", err)
 	}
+
+	blockchain.InsertBlock([]byte("A transfer to B 100 BTC"))
+	blockchain.InsertBlock([]byte("A transfer to D 100 BTC"))
+	blockchain.InsertBlock([]byte("B transfer to C 13 BTC"))
+	blockchain.InsertBlock([]byte("C transfer to E 3 BTC"))
 }

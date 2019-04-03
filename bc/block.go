@@ -27,7 +27,6 @@ func NewBlock(num int64, parentHash []byte, data []byte) *Block {
 		Data:       data,
 		Timestamp:  time.Now().Unix(),
 	}
-	//b.SetHash()
 	pow := NewPOW(&block)
 	hash, nonce := pow.Run() // 进行工作量证明
 	block.Hash = hash
@@ -60,10 +59,11 @@ func (b *Block) Serialize() []byte {
 }
 
 // 反序列化，把字节数组结构化为区块
-func (b *Block) Deserialize(data []byte) *Block {
+func Deserialize(data []byte) *Block {
+	b := Block{}
 	decoder := gob.NewDecoder(bytes.NewReader(data))
-	if err := decoder.Decode(b); err != nil {
+	if err := decoder.Decode(&b); err != nil {
 		log.Panicf("deserialize block failed:%v\n", err)
 	}
-	return b
+	return &b
 }
