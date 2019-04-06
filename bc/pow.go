@@ -7,7 +7,7 @@ import (
 	"simplebtc/util"
 )
 
-const targetBit = 16 // 目标难度值，代表哈希前targetBit位为0才能满足条件
+const targetBit = 20 // 目标难度值，代表哈希前targetBit位为0才能满足条件
 
 // 工作量证明
 type POW struct {
@@ -49,7 +49,7 @@ func (pow *POW) Run() ([]byte, int64) {
 // 准备数据，将区块相关属性拼接返回一个字节数组
 func (pow *POW) PrepareData(nonce int64) []byte {
 	data := bytes.Join([][]byte{
-		pow.Block.ParentHash,
+		pow.Block.Parent,
 		pow.Block.Data,
 		util.IntToHex(pow.Block.Timestamp),
 		util.IntToHex(pow.Block.Number),

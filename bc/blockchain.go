@@ -18,6 +18,63 @@ type BlockChain struct {
 	Tip []byte   //最新区块哈希
 }
 
+// 区块链迭代器
+type BlockChainIterator struct {
+	DB   *bolt.DB //
+	Hash []byte   // 当前区块哈希
+}
+
+// 创建迭代器
+func (bc *BlockChain) Iterator() *BlockChainIterator {
+	return &BlockChainIterator{
+		DB:   bc.DB,
+		Hash: bc.Tip,
+	}
+}
+
+// 返回迭代器对应的区块
+func (bcit *BlockChainIterator) Block() *Block {
+	var (
+		block *Block
+		err   error
+	)
+
+	err = bcit.DB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(blockTableName))
+		if bucket != nil {
+			if data := bucket.Get(bcit.Hash); data != nil {
+				block = Deserialize(data)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Panicf("BlockChain iterator current view failed: %v\n", err)
+	}
+	return block
+}
+
+// 迭代器后移
+func (bcit *BlockChainIterator) Next() {
+	var (
+		block *Block
+		err   error
+	)
+	err = bcit.DB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(blockTableName))
+		if bucket != nil {
+			block = bcit.Block()
+			bcit.Hash = block.Parent // 更新迭代器
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Panicf("blockchain iterator next view failed: %v\n", err)
+	}
+
+}
+
 // 创建区块链
 func NewBlockChain() *BlockChain {
 	// 创建或打开数据库，如果dbName不存在则创建，否则打开dbName
@@ -63,21 +120,22 @@ func NewBlockChain() *BlockChain {
 
 // 插入区块
 func (bc *BlockChain) InsertBlock(data []byte) {
+	var err error
 	// 更新数据
-	err := bc.DB.Update(func(tx *bolt.Tx) error {
+	err = bc.DB.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blockTableName)) // 获取表
 		if bucket != nil {                          // 表存在
-			var err error
-			tipData := bucket.Get(bc.Tip)
-			tipBlock := Deserialize(tipData)
-			newBlock := NewBlock(tipBlock.Number+1, tipBlock.Hash, data)
-			if err = bucket.Put(newBlock.Hash, newBlock.Serialize()); err != nil {
-				log.Panicf("insert block into db failed: %v\n", err)
+			if tipData := bucket.Get(bc.Tip); tipData != nil {
+				tipBlock := Deserialize(tipData)
+				newBlock := NewBlock(tipBlock.Number+1, tipBlock.Hash, data)
+				if err = bucket.Put(newBlock.Hash, newBlock.Serialize()); err != nil {
+					log.Panicf("insert block into db failed: %v\n", err)
+				}
+				if err = bucket.Put([]byte("tip"), newBlock.Hash); err != nil {
+					log.Panicf("update latest block failed: %v\n", err)
+				}
+				bc.Tip = newBlock.Hash
 			}
-			if err = bucket.Put([]byte("tip"), newBlock.Hash); err != nil {
-				log.Panicf("update latest block failed: %v\n", err)
-			}
-			bc.Tip = newBlock.Hash
 		}
 		return nil
 	})
@@ -91,30 +149,17 @@ func (bc *BlockChain) InsertBlock(data []byte) {
 func (bc *BlockChain) PrintChain() {
 	var (
 		curBlock *Block
-		curHash  = bc.Tip
-		err      error
+		itr      = bc.Iterator()
 	)
 	fmt.Println("==========BLOCKCHAIN INFO==========")
 	for {
-		err = bc.DB.View(func(tx *bolt.Tx) error {
-			bucket := tx.Bucket([]byte(blockTableName))
-			if bucket != nil {
-				data := bucket.Get(curHash)
-				curBlock = Deserialize(data)
-				fmt.Printf("Height:%d,Timstamp:%d,Parent:%x,Hash:%x,Data:%s,Nonce:%d\n", curBlock.Number,
-					curBlock.Timestamp, curBlock.ParentHash, curBlock.Hash, string(curBlock.Data), curBlock.Nonce)
-			}
-			return nil
-		})
-		if err != nil {
-			log.Panicf("view db failed: %v\n", err)
-		}
-
-		hashInt := big.NewInt(0).SetBytes(curBlock.ParentHash)
+		curBlock = itr.Block()
+		fmt.Printf("Height:%d,Timstamp:%d,Parent:%x,Hash:%x,Data:%s,Nonce:%d\n", curBlock.Number,
+			curBlock.Timestamp, curBlock.Parent, curBlock.Hash, string(curBlock.Data), curBlock.Nonce)
+		hashInt := big.NewInt(0).SetBytes(curBlock.Parent)
 		if big.NewInt(0).Cmp(hashInt) == 0 { // 到达创世块
 			break
 		}
-		curHash = curBlock.ParentHash
+		itr.Next()
 	}
-
 }
