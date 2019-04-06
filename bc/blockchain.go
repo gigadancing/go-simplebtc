@@ -1,8 +1,10 @@
 package bc
 
 import (
+	"fmt"
 	"github.com/boltdb/bolt"
 	"log"
+	"math/big"
 )
 
 const (
@@ -60,13 +62,13 @@ func NewBlockChain() *BlockChain {
 }
 
 // 插入区块
-func (blockchain *BlockChain) InsertBlock(data []byte) {
+func (bc *BlockChain) InsertBlock(data []byte) {
 	// 更新数据
-	err := blockchain.DB.Update(func(tx *bolt.Tx) error {
+	err := bc.DB.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blockTableName)) // 获取表
 		if bucket != nil {                          // 表存在
 			var err error
-			tipData := bucket.Get(blockchain.Tip)
+			tipData := bucket.Get(bc.Tip)
 			tipBlock := Deserialize(tipData)
 			newBlock := NewBlock(tipBlock.Number+1, tipBlock.Hash, data)
 			if err = bucket.Put(newBlock.Hash, newBlock.Serialize()); err != nil {
@@ -75,7 +77,7 @@ func (blockchain *BlockChain) InsertBlock(data []byte) {
 			if err = bucket.Put([]byte("tip"), newBlock.Hash); err != nil {
 				log.Panicf("update latest block failed: %v\n", err)
 			}
-			blockchain.Tip = newBlock.Hash
+			bc.Tip = newBlock.Hash
 		}
 		return nil
 	})
@@ -83,4 +85,36 @@ func (blockchain *BlockChain) InsertBlock(data []byte) {
 	if err != nil {
 		log.Panicf("blockchain insert block failed:%v\n", err)
 	}
+}
+
+// 遍历输出所有区块信息
+func (bc *BlockChain) PrintChain() {
+	var (
+		curBlock *Block
+		curHash  = bc.Tip
+		err      error
+	)
+	fmt.Println("==========BLOCKCHAIN INFO==========")
+	for {
+		err = bc.DB.View(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket([]byte(blockTableName))
+			if bucket != nil {
+				data := bucket.Get(curHash)
+				curBlock = Deserialize(data)
+				fmt.Printf("Height:%d,Timstamp:%d,Parent:%x,Hash:%x,Data:%s,Nonce:%d\n", curBlock.Number,
+					curBlock.Timestamp, curBlock.ParentHash, curBlock.Hash, string(curBlock.Data), curBlock.Nonce)
+			}
+			return nil
+		})
+		if err != nil {
+			log.Panicf("view db failed: %v\n", err)
+		}
+
+		hashInt := big.NewInt(0).SetBytes(curBlock.ParentHash)
+		if big.NewInt(0).Cmp(hashInt) == 0 { // 到达创世块
+			break
+		}
+		curHash = curBlock.ParentHash
+	}
+
 }

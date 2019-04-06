@@ -7,7 +7,7 @@ import (
 	"simplebtc/util"
 )
 
-const targetBit = 20 // 目标难度值，代表哈希前targetBit位为0才能满足条件
+const targetBit = 16 // 目标难度值，代表哈希前targetBit位为0才能满足条件
 
 // 工作量证明
 type POW struct {
