@@ -1,10 +1,8 @@
 package bc
 
 import (
-	"fmt"
 	"github.com/boltdb/bolt"
 	"log"
-	"simplebtc/util"
 )
 
 const (
@@ -20,44 +18,44 @@ type BlockChain struct {
 
 // 创建区块链
 func NewBlockChain() *BlockChain {
-	// 创建或打开数据库
+	// 创建或打开数据库，如果dbName不存在则创建，否则打开dbName
 	db, err := bolt.Open(dbName, 0600, nil)
 	if err != nil {
 		log.Panicf("open block.db failed:%v\n", err)
 	}
-	//defer db.Close()
 
-	var latestBlockHash []byte
+	var tip []byte // 最新区块哈希
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blockTableName))
-		if bucket == nil { // 数据库不存在，创建数据库
-			bucket, err = tx.CreateBucket([]byte(blockTableName))
+		if bucket == nil { // 表不存在
+			bucket, err = tx.CreateBucket([]byte(blockTableName)) // 创建表
 			if err != nil {
-				log.Panicf("create bucket [%s] failed:%v\n", blockTableName, err)
+				log.Panicf("create bucket [%s] failed: %v\n", blockTableName, err)
 			}
-		} else { // 数据库存在，更新数据
-			genesisBlock := CreateGenesisBlock("today is saturday,2019/3/30")
-			err = bucket.Put(genesisBlock.Hash, genesisBlock.Serialize())
+			genesisBlock := CreateGenesisBlock("today is saturday, 2019/3/30.") // 创建创世区块
+			err = bucket.Put(genesisBlock.Hash, genesisBlock.Serialize())       // 存入创世区块
 			if err != nil {
-				log.Panicf("put block data to db failed:%v\n", err)
+				log.Panicf("put genesis block data into db failed: %v\n", err)
 			}
-			err = bucket.Put([]byte("latest"), genesisBlock.Hash)
+			err = bucket.Put([]byte("tip"), genesisBlock.Hash) // 存入最新区块哈希
 			if err != nil {
-				log.Panicf("put the hash of latest block failed:%v\n", err)
+				log.Panicf("put the hash of latest block failed: %v\n", err)
 			}
-			latestBlockHash = genesisBlock.Hash
+			tip = genesisBlock.Hash
+		} else { // 表存在
+			tip = bucket.Get([]byte("tip")) // 更新最先区块
 		}
-
 		return nil
 	})
+
 	if err != nil {
 		log.Panicf("update the data of genesis block failed:%v\n", err)
 	}
 
 	return &BlockChain{
 		DB:  db,
-		Tip: latestBlockHash,
+		Tip: tip,
 	}
 }
 
@@ -68,21 +66,16 @@ func (blockchain *BlockChain) InsertBlock(data []byte) {
 		bucket := tx.Bucket([]byte(blockTableName)) // 获取表
 		if bucket != nil {                          // 表存在
 			var err error
-			latestBlockHash := bucket.Get([]byte("latest"))
-			latestBlockData := bucket.Get(latestBlockHash)
-			latestBlock := Deserialize(latestBlockData)
-			newBlock := NewBlock(latestBlock.Number+1, latestBlock.Hash, data)
+			tipData := bucket.Get(blockchain.Tip)
+			tipBlock := Deserialize(tipData)
+			newBlock := NewBlock(tipBlock.Number+1, tipBlock.Hash, data)
 			if err = bucket.Put(newBlock.Hash, newBlock.Serialize()); err != nil {
-				log.Panicf("insert block into db failed:%v\n", err)
+				log.Panicf("insert block into db failed: %v\n", err)
 			}
-			if err = bucket.Put([]byte("latest"), newBlock.Hash); err != nil {
-				log.Panicf("update latest block failed:%v\n", err)
+			if err = bucket.Put([]byte("tip"), newBlock.Hash); err != nil {
+				log.Panicf("update latest block failed: %v\n", err)
 			}
 			blockchain.Tip = newBlock.Hash
-
-			fmt.Printf("blockNumber:%d parent:%v hash:%v tip:%v\n", newBlock.Number,
-				util.HexToString(newBlock.ParentHash), util.HexToString(newBlock.Hash), util.HexToString(newBlock.Hash))
-
 		}
 		return nil
 	})
