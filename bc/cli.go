@@ -9,7 +9,6 @@ import (
 
 //
 type CLI struct {
-	BC *BlockChain
 }
 
 // 展示用法
@@ -31,17 +30,28 @@ func Validate() {
 
 // 添加区块
 func (cli *CLI) insertBlock(data string) {
-	cli.BC.InsertBlock([]byte(data))
+	if !dbExist() {
+		fmt.Println("db not exist")
+	}
+	bc := BlockChainObject()
+	defer bc.DB.Close()
+	bc.InsertBlock([]byte(data))
 }
 
 // 输出区块链信息
 func (cli *CLI) printBlockChain() {
-	cli.BC.PrintChain()
+	if !dbExist() {
+		fmt.Println("db not exist")
+	}
+	bc := BlockChainObject()
+	defer bc.DB.Close()
+	bc.PrintChain()
 }
 
 // 创建区块链
 func (cli *CLI) createBlockChain() {
-	NewBlockChain()
+	bc := NewBlockChain()
+	defer bc.DB.Close()
 }
 
 //

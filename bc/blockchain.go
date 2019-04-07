@@ -135,3 +135,27 @@ func (bc *BlockChain) PrintChain() {
 		itr.Next()
 	}
 }
+
+// 返回BlockChain对象
+func BlockChainObject() *BlockChain {
+	var (
+		db  *bolt.DB
+		tip []byte
+		err error
+	)
+	if db, err = bolt.Open(dbName, 0600, nil); err != nil {
+		log.Panicf("get the object of blockchain failed: %v", err)
+	}
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(blockTableName))
+		if bucket != nil {
+			tip = bucket.Get([]byte("tip"))
+		}
+		return nil
+	})
+
+	return &BlockChain{
+		DB:  db,
+		Tip: tip,
+	}
+}
