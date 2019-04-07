@@ -32,6 +32,7 @@ func Validate() {
 func (cli *CLI) insertBlock(data string) {
 	if !dbExist() {
 		fmt.Println("db not exist")
+		os.Exit(1)
 	}
 	bc := BlockChainObject()
 	defer bc.DB.Close()
@@ -42,6 +43,7 @@ func (cli *CLI) insertBlock(data string) {
 func (cli *CLI) printBlockChain() {
 	if !dbExist() {
 		fmt.Println("db not exist")
+		os.Exit(1)
 	}
 	bc := BlockChainObject()
 	defer bc.DB.Close()
