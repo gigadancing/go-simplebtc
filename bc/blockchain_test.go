@@ -40,13 +40,5 @@ func TestBlockChain_PrintChain(t *testing.T) {
 	bc.InsertBlock([]byte("A transfer to B 100 BTC"))
 	bc.InsertBlock([]byte("A transfer to D 100 BTC"))
 	bc.InsertBlock([]byte("B transfer to C 13 BTC"))
-	bc.InsertBlock([]byte("C transfer to E 3 BTC"))
-	bc.InsertBlock([]byte("A transfer to B 100 BTC"))
-	bc.InsertBlock([]byte("A transfer to D 100 BTC"))
-	bc.InsertBlock([]byte("B transfer to C 13 BTC"))
-	bc.InsertBlock([]byte("C transfer to E 3 BTC"))
-	bc.InsertBlock([]byte("A transfer to B 100 BTC"))
-	bc.InsertBlock([]byte("A transfer to D 100 BTC"))
-
 	bc.PrintChain()
 }
