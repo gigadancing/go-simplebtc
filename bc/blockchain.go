@@ -28,7 +28,7 @@ func dbExist() bool {
 }
 
 // 创建区块链
-func NewBlockChain() *BlockChain {
+func NewBlockChain(txs []*Transaction) *BlockChain {
 	var (
 		db  *bolt.DB
 		tip []byte
@@ -67,8 +67,8 @@ func NewBlockChain() *BlockChain {
 		if err != nil {
 			log.Panicf("create bucket [%s] failed: %v\n", blockTableName, err)
 		}
-		genesisBlock := CreateGenesisBlock("today is saturday, 2019/3/30.") // 创建创世区块
-		err = bucket.Put(genesisBlock.Hash, genesisBlock.Serialize())       // 存入创世区块
+		genesisBlock := CreateGenesisBlock(txs)                       // 创建创世区块
+		err = bucket.Put(genesisBlock.Hash, genesisBlock.Serialize()) // 存入创世区块
 		if err != nil {
 			log.Panicf("put genesis block data into db failed: %v\n", err)
 		}
@@ -91,7 +91,7 @@ func NewBlockChain() *BlockChain {
 }
 
 // 插入区块
-func (bc *BlockChain) InsertBlock(data []byte) {
+func (bc *BlockChain) InsertBlock(txs []*Transaction) {
 	var err error
 	// 更新数据
 	err = bc.DB.Update(func(tx *bolt.Tx) error {
@@ -99,7 +99,7 @@ func (bc *BlockChain) InsertBlock(data []byte) {
 		if bucket != nil {                          // 表存在
 			if tipData := bucket.Get(bc.Tip); tipData != nil {
 				tipBlock := Deserialize(tipData)
-				newBlock := NewBlock(tipBlock.Number+1, tipBlock.Hash, data)
+				newBlock := NewBlock(tipBlock.Number+1, tipBlock.Hash, txs)
 				if err = bucket.Put(newBlock.Hash, newBlock.Serialize()); err != nil {
 					log.Panicf("insert block into db failed: %v\n", err)
 				}
@@ -126,8 +126,8 @@ func (bc *BlockChain) PrintChain() {
 	fmt.Println("==========BLOCKCHAIN INFO==========")
 	for {
 		curBlock = itr.Block()
-		fmt.Printf("Height:%d,Timstamp:%d,Parent:%x,Hash:%x,Data:%s,Nonce:%d\n", curBlock.Number,
-			curBlock.Timestamp, curBlock.Parent, curBlock.Hash, string(curBlock.Data), curBlock.Nonce)
+		fmt.Printf("Height:%d,Timstamp:%d,Parent:%x,Hash:%x,Data:%v,Nonce:%d\n", curBlock.Number,
+			curBlock.Timestamp, curBlock.Parent, curBlock.Hash, curBlock.Txs, curBlock.Nonce)
 		hashInt := big.NewInt(0).SetBytes(curBlock.Parent)
 		if big.NewInt(0).Cmp(hashInt) == 0 { // 到达创世块
 			break

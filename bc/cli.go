@@ -29,14 +29,14 @@ func Validate() {
 }
 
 // 添加区块
-func (cli *CLI) insertBlock(data string) {
+func (cli *CLI) insertBlock(txs []*Transaction) {
 	if !dbExist() {
 		fmt.Println("db not exist")
 		os.Exit(1)
 	}
 	bc := BlockChainObject()
 	defer bc.DB.Close()
-	bc.InsertBlock([]byte(data))
+	bc.InsertBlock(txs)
 }
 
 // 输出区块链信息
@@ -51,8 +51,8 @@ func (cli *CLI) printBlockChain() {
 }
 
 // 创建区块链
-func (cli *CLI) createBlockChain() {
-	bc := NewBlockChain()
+func (cli *CLI) createBlockChain(txs []*Transaction) {
+	bc := NewBlockChain(txs)
 	defer bc.DB.Close()
 }
 
@@ -87,7 +87,7 @@ func (cli *CLI) Run() {
 			Usage()
 			os.Exit(1)
 		}
-		cli.insertBlock(*flagInsertBlockArg)
+		cli.insertBlock([]*Transaction{})
 	}
 
 	if printBlockChainCmd.Parsed() {
@@ -95,7 +95,7 @@ func (cli *CLI) Run() {
 	}
 
 	if createBlockChainCmd.Parsed() {
-		cli.createBlockChain()
+		cli.createBlockChain([]*Transaction{})
 	}
 
 }

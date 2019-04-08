@@ -50,7 +50,7 @@ func (pow *POW) Run() ([]byte, int64) {
 func (pow *POW) PrepareData(nonce int64) []byte {
 	data := bytes.Join([][]byte{
 		pow.Block.Parent,
-		pow.Block.Data,
+		pow.Block.TxsHash(),
 		util.IntToHex(pow.Block.Timestamp),
 		util.IntToHex(pow.Block.Number),
 		util.IntToHex(nonce),
