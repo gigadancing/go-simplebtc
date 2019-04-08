@@ -28,7 +28,7 @@ func dbExist() bool {
 }
 
 // 创建区块链
-func NewBlockChain(txs []*Transaction) *BlockChain {
+func NewBlockChain(address string) *BlockChain {
 	var (
 		db  *bolt.DB
 		tip []byte
@@ -67,8 +67,9 @@ func NewBlockChain(txs []*Transaction) *BlockChain {
 		if err != nil {
 			log.Panicf("create bucket [%s] failed: %v\n", blockTableName, err)
 		}
-		genesisBlock := CreateGenesisBlock(txs)                       // 创建创世区块
-		err = bucket.Put(genesisBlock.Hash, genesisBlock.Serialize()) // 存入创世区块
+		coinbaseTx := NewCoinbaseTx(address)
+		genesisBlock := CreateGenesisBlock([]*Transaction{coinbaseTx}) // 创建创世区块
+		err = bucket.Put(genesisBlock.Hash, genesisBlock.Serialize())  // 存入创世区块
 		if err != nil {
 			log.Panicf("put genesis block data into db failed: %v\n", err)
 		}

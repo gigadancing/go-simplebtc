@@ -14,7 +14,7 @@ type CLI struct {
 // 展示用法
 func Usage() {
 	fmt.Println("Usage:")
-	fmt.Printf("\tcreateblockchain -- 创建区块链\n")
+	fmt.Printf("\tcreateblockchain -address addr --地址\n")
 	fmt.Printf("\tinsertblock -data DATA -- 交易数据\n")
 	fmt.Printf("\tprintblockchain -- 输出区块链信息")
 }
@@ -51,8 +51,8 @@ func (cli *CLI) printBlockChain() {
 }
 
 // 创建区块链
-func (cli *CLI) createBlockChain(txs []*Transaction) {
-	bc := NewBlockChain(txs)
+func (cli *CLI) createBlockChain(address string) {
+	bc := NewBlockChain(address)
 	defer bc.DB.Close()
 }
 
@@ -64,6 +64,7 @@ func (cli *CLI) Run() {
 	createBlockChainCmd := flag.NewFlagSet("newblockchain", flag.ExitOnError)
 
 	flagInsertBlockArg := insertBlockCmd.String("data", "send 100 BTC to everyone", "交易数据")
+	flagCreateBlockChain := createBlockChainCmd.String("address", "", "地址")
 	switch os.Args[1] {
 	case "insertblock":
 		if err := insertBlockCmd.Parse(os.Args[2:]); err != nil {
@@ -95,7 +96,11 @@ func (cli *CLI) Run() {
 	}
 
 	if createBlockChainCmd.Parsed() {
-		cli.createBlockChain([]*Transaction{})
+		if *flagCreateBlockChain == "" {
+			Usage()
+			os.Exit(1)
+		}
+		cli.createBlockChain(*flagCreateBlockChain)
 	}
 
 }
