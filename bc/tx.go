@@ -47,3 +47,33 @@ func NewCoinbaseTx(address string) *Transaction {
 }
 
 // 转账交易
+func NewSimpleTx(from, to string, amount int) *Transaction {
+	var (
+		txsIn  []*TxInput
+		txsOut []*TxOutput
+	)
+	in := &TxInput{ // 消费
+		Hash:      nil,
+		Index:     0,
+		ScriptSig: from,
+	}
+	txsIn = append(txsIn, in)
+	out := &TxOutput{ // 转账
+		Value:        int64(amount),
+		ScriptPubkey: to,
+	}
+	txsOut = append(txsOut, out)
+	out = &TxOutput{ // 找零
+		Value:        10 - int64(amount),
+		ScriptPubkey: from,
+	}
+	txsOut = append(txsOut, out)
+
+	tx := &Transaction{
+		Hash: nil,
+		In:   txsIn,
+		Out:  txsOut,
+	}
+	tx.TxHash()
+	return tx
+}

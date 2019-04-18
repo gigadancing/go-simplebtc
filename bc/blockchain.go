@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"strconv"
 )
 
 const (
@@ -158,5 +159,48 @@ func BlockChainObject() *BlockChain {
 	return &BlockChain{
 		DB:  db,
 		Tip: tip,
+	}
+}
+
+// 挖矿
+func (bc *BlockChain) MineNewBlock(from, to, amount []string) {
+	var (
+		txs   []*Transaction // 要打包的交易
+		block *Block
+		err   error
+	)
+	value, _ := strconv.Atoi(amount[0])
+	tx := NewSimpleTx(from[0], to[0], value)
+	txs = append(txs, tx)
+
+	err = bc.DB.View(func(tx *bolt.Tx) error { // 获取当前最新区块
+		bucket := tx.Bucket([]byte(blockTableName))
+		if nil != nil {
+			h := bucket.Get([]byte("tip"))
+			data := bucket.Get(h)
+			block = Deserialize(data)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Panicf("MinBlock view db error: %v\n", err)
+	}
+
+	newBlock := NewBlock(block.Number+1, block.Hash, txs) // 打包的新区快
+	err = bc.DB.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(blockTableName))
+		if bucket != nil {
+			if err := bucket.Put(newBlock.Hash, newBlock.Serialize()); err != nil { // 将打包的区块持久化
+				log.Panicf("MineBlock: put new block error: %v\n", err)
+			}
+			if err := bucket.Put([]byte("tip"), newBlock.Hash); err != nil { // 更新最新区块
+				log.Panicf("MineBlock: put tip error: %v\n", err)
+			}
+			bc.Tip = newBlock.Hash
+		}
+		return nil
+	})
+	if err != nil {
+		log.Panicf("MineBlock: update error: %v\n", err)
 	}
 }
