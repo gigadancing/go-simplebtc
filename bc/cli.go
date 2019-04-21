@@ -10,6 +10,7 @@ import (
 
 //
 type CLI struct {
+	BC *BlockChain
 }
 
 // 展示用法
@@ -19,6 +20,7 @@ func Usage() {
 	fmt.Printf("\tinsertblock -data DATA -- 交易数据\n")
 	fmt.Printf("\tprintblockchain -- 输出区块链信息\n")
 	fmt.Printf("\tsend -from FROM -to TO -amount AMOUNT -- 转账\n")
+	fmt.Printf("\tgetbalance -address FROM -- 查询余额\n")
 }
 
 // 校验参数
@@ -28,6 +30,12 @@ func Validate() {
 		Usage()    // 打印用法
 		os.Exit(1) // 退出程序
 	}
+}
+
+// 查询余额
+func (cli *CLI) getBalance(from string) {
+	// 获取指定地址的余额
+	// outputs := cli.BC.UnspentUTXO(from)
 }
 
 // 发送交易
@@ -76,13 +84,14 @@ func (cli *CLI) Run() {
 	printBlockChainCmd := flag.NewFlagSet("printblockchain", flag.ExitOnError)
 	createBlockChainCmd := flag.NewFlagSet("newblockchain", flag.ExitOnError)
 	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
+	getBalanceCmd := flag.NewFlagSet("getbalance", flag.ExitOnError)
 	// 获得命令行参数
 	flagInsertBlockArg := insertBlockCmd.String("data", "send 100 BTC to everyone", "交易数据")
 	flagCreateBlockChainArg := createBlockChainCmd.String("address", "", "地址")
 	flagFromArg := sendCmd.String("from", "", "转账源地址")
 	flagToArg := sendCmd.String("to", "", "转账目标地址")
 	flagAmountArg := sendCmd.String("amount", "", "转账金额")
-
+	flagGetBalanceArg := getBalanceCmd.String("from", "", "查询地址")
 	switch os.Args[1] {
 	case "send":
 		if err := sendCmd.Parse(os.Args[2:]); err != nil {
@@ -99,6 +108,10 @@ func (cli *CLI) Run() {
 	case "createblockchain":
 		if err := createBlockChainCmd.Parse(os.Args[2:]); err != nil {
 			log.Panicf("parse cmd of createblockchain failed:%v\n", err)
+		}
+	case "getbalance":
+		if err := getBalanceCmd.Parse(os.Args[2:]); err != nil {
+			log.Panicf("get balance error: %v\n", err)
 		}
 	default:
 		Usage()
@@ -122,6 +135,15 @@ func (cli *CLI) Run() {
 			os.Exit(1)
 		}
 		cli.send(util.JsonToSlice(*flagFromArg), util.JsonToSlice(*flagToArg), util.JsonToSlice(*flagAmountArg))
+	}
+
+	if getBalanceCmd.Parsed() {
+		if *flagGetBalanceArg == "" {
+			fmt.Println("未指定地址")
+			Usage()
+			os.Exit(1)
+		}
+		cli.getBalance(*flagGetBalanceArg)
 	}
 
 	if insertBlockCmd.Parsed() {

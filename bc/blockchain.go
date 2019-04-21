@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"simplebtc/util"
 	"strconv"
 )
 
@@ -203,4 +204,54 @@ func (bc *BlockChain) MineNewBlock(from, to, amount []string) {
 	if err != nil {
 		log.Panicf("MineBlock: update error: %v\n", err)
 	}
+}
+
+// 返回指定地址的余额
+func (bc *BlockChain) UnspentUTXO(addr string) []*TxOutput {
+	var utxos []*TxOutput
+	// 遍历区块链，查找与addr相关的所有交易
+	blockItr := bc.Iterator()
+	// 存储所有已花费的输出
+	// key：每个input所引用交易的哈希
+	// value：output索引列表
+	spentOutputs := make(map[string][]int)
+
+	for {
+		block := blockItr.Block()   // 返回迭代器对应的区块
+		if len(block.Parent) == 0 { // 到达创世块
+			break
+		}
+		for _, tx := range block.Txs { // 遍历每个区块的交易
+			// 查找输入
+			if !tx.IsCoinbaseTx() { // 普通交易
+				for _, in := range tx.Ins {
+					if in.UnlockWithAddress(addr) { // 验证地址
+						key := util.HexToString(in.Hash)
+						spentOutputs[key] = append(spentOutputs[key], in.OutputIndex)
+					}
+				}
+			}
+			// 查找输出
+			for index, out := range tx.Outs {
+				if out.UnlockScripPubkeyWithAddress(addr) { // 验证输出是否属于传入地址
+					if len(spentOutputs) != 0 { // 已花费输出不为空
+						for txHash, indexArray := range spentOutputs {
+							for _, i := range indexArray {
+								if txHash == util.HexToString(tx.Hash) && i == index {
+									continue
+								} else {
+									utxos = append(utxos, out)
+								}
+							}
+						}
+					} else { // 已花费输出为空
+						utxos = append(utxos, out)
+					}
+				}
+			}
+		}
+		blockItr.Next() // 迭代器后移
+	}
+
+	return utxos
 }

@@ -21,12 +21,8 @@ func (bc *BlockChain) Iterator() *BlockChainIterator {
 
 // 返回迭代器对应的区块
 func (bcit *BlockChainIterator) Block() *Block {
-	var (
-		block *Block
-		err   error
-	)
-
-	err = bcit.DB.View(func(tx *bolt.Tx) error {
+	var block *Block
+	if err := bcit.DB.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blockTableName))
 		if bucket != nil {
 			if data := bucket.Get(bcit.Hash); data != nil {
@@ -34,8 +30,7 @@ func (bcit *BlockChainIterator) Block() *Block {
 			}
 		}
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		log.Panicf("BlockChain iterator current view failed: %v\n", err)
 	}
 	return block
@@ -43,20 +38,14 @@ func (bcit *BlockChainIterator) Block() *Block {
 
 // 迭代器后移
 func (bcit *BlockChainIterator) Next() {
-	var (
-		block *Block
-		err   error
-	)
-	err = bcit.DB.View(func(tx *bolt.Tx) error {
+	if err := bcit.DB.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blockTableName))
 		if bucket != nil {
-			block = bcit.Block()
+			block := bcit.Block()
 			bcit.Hash = block.Parent // 更新迭代器
 		}
 		return nil
-	})
-
-	if err != nil {
+	}); err != nil {
 		log.Panicf("blockchain iterator next view failed: %v\n", err)
 	}
 }

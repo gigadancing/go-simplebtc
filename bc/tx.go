@@ -10,8 +10,8 @@ import (
 // 交易
 type Transaction struct {
 	Hash []byte      // 交易哈希
-	In   []*TxInput  // 交易输入
-	Out  []*TxOutput // 交易输出
+	Ins  []*TxInput  // 交易输入
+	Outs []*TxOutput // 交易输出
 }
 
 // 生成交易哈希
@@ -28,9 +28,9 @@ func (tx *Transaction) TxHash() {
 // coinbase交易
 func NewCoinbaseTx(address string) *Transaction {
 	in := &TxInput{
-		Hash:      []byte{},
-		Index:     -1,
-		ScriptSig: "mining award",
+		Hash:        []byte{},
+		OutputIndex: -1,
+		ScriptSig:   "mining award",
 	}
 	out := &TxOutput{
 		Value:        10,
@@ -39,8 +39,8 @@ func NewCoinbaseTx(address string) *Transaction {
 
 	coinbaseTx := &Transaction{
 		Hash: nil,
-		In:   []*TxInput{in},
-		Out:  []*TxOutput{out},
+		Ins:  []*TxInput{in},
+		Outs: []*TxOutput{out},
 	}
 	coinbaseTx.TxHash()
 	return coinbaseTx
@@ -53,9 +53,9 @@ func NewSimpleTx(from, to string, amount int) *Transaction {
 		txsOut []*TxOutput
 	)
 	in := &TxInput{ // 消费
-		Hash:      nil,
-		Index:     0,
-		ScriptSig: from,
+		Hash:        nil,
+		OutputIndex: 0,
+		ScriptSig:   from,
 	}
 	txsIn = append(txsIn, in)
 	out := &TxOutput{ // 转账
@@ -71,9 +71,14 @@ func NewSimpleTx(from, to string, amount int) *Transaction {
 
 	tx := &Transaction{
 		Hash: nil,
-		In:   txsIn,
-		Out:  txsOut,
+		Ins:  txsIn,
+		Outs: txsOut,
 	}
 	tx.TxHash()
 	return tx
+}
+
+// 判断交易是否是coinbase交易
+func (tx *Transaction) IsCoinbaseTx() bool {
+	return len(tx.Ins[0].Hash) == 0 && tx.Ins[0].OutputIndex == -1
 }
