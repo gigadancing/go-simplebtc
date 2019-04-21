@@ -1,5 +1,10 @@
 package bc
 
+import (
+	"fmt"
+	"os"
+)
+
 // 发送交易
 func (cli *CLI) send(from, to, amount []string) {
 	if !dbExist() {

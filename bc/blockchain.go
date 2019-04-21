@@ -207,13 +207,12 @@ func (bc *BlockChain) MineNewBlock(from, to, amount []string) {
 
 // 返回指定地址的utxo
 func (bc *BlockChain) UnspentUTXO(addr string) []*UTXO {
-	var utxos []*UTXO
-	// 遍历区块链，查找与addr相关的所有交易
-	blockItr := bc.Iterator()
-	// 存储所有已花费的输出
+	var utxos []*UTXO         // 未花费的交易输出
+	blockItr := bc.Iterator() // 区块迭代器
+
 	// key：每个input所引用交易的哈希
 	// value：output索引列表
-	spentOutputs := make(map[string][]int)
+	spentOutputs := make(map[string][]int) // 已花费的交易输出
 
 	for {
 		block := blockItr.Block()   // 返回迭代器对应的区块
@@ -225,8 +224,8 @@ func (bc *BlockChain) UnspentUTXO(addr string) []*UTXO {
 			if !tx.IsCoinbaseTx() { // 普通交易
 				for _, in := range tx.Ins {
 					if in.UnlockWithAddress(addr) { // 验证地址
-						key := util.HexToString(in.Hash)
-						spentOutputs[key] = append(spentOutputs[key], in.Vout)
+						key := util.HexToString(in.Prevout.Hash)
+						spentOutputs[key] = append(spentOutputs[key], in.Prevout.Index)
 					}
 				}
 			}
@@ -239,13 +238,13 @@ func (bc *BlockChain) UnspentUTXO(addr string) []*UTXO {
 								if txHash == util.HexToString(tx.Hash) && i == index {
 									continue
 								} else {
-									utxo := &UTXO{Hash: tx.Hash, Vout: index, Output: out}
+									utxo := &UTXO{Hash: tx.Hash, Index: index, Output: out}
 									utxos = append(utxos, utxo)
 								}
 							}
 						}
 					} else { // 已花费输出为空
-						utxo := &UTXO{Hash: tx.Hash, Vout: index, Output: out}
+						utxo := &UTXO{Hash: tx.Hash, Index: index, Output: out}
 						utxos = append(utxos, utxo)
 					}
 				}

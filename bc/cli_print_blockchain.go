@@ -1,5 +1,10 @@
 package bc
 
+import (
+	"fmt"
+	"os"
+)
+
 // 打印区块链信息
 func (cli *CLI) printBlockChain() {
 	if !dbExist() {

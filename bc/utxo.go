@@ -1,7 +1,8 @@
 package bc
 
+// 未花费交易输出
 type UTXO struct {
 	Hash   []byte
-	Vout   int
-	Output *TxOutput
+	Index  int
+	Output *TxOut
 }
