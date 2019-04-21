@@ -222,7 +222,7 @@ func (bc *BlockChain) UnspentUTXO(addr string) []*UTXO {
 		for _, tx := range block.Txs { // 遍历每个区块的交易
 			// 查找输入
 			if !tx.IsCoinbaseTx() { // 普通交易
-				for _, in := range tx.Ins {
+				for _, in := range tx.Vin {
 					if in.UnlockWithAddress(addr) { // 验证地址
 						key := util.HexToString(in.Prevout.Hash)
 						spentOutputs[key] = append(spentOutputs[key], in.Prevout.Index)
@@ -230,7 +230,7 @@ func (bc *BlockChain) UnspentUTXO(addr string) []*UTXO {
 				}
 			}
 			// 查找输出
-			for index, out := range tx.Outs {
+			for index, out := range tx.Vout {
 				if out.UnlockScripPubkeyWithAddress(addr) { // 验证输出是否属于传入地址
 					if len(spentOutputs) != 0 { // 已花费输出不为空
 						for txHash, indexArray := range spentOutputs {
