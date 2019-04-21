@@ -149,13 +149,15 @@ func BlockChainObject() *BlockChain {
 	if db, err = bolt.Open(dbName, 0600, nil); err != nil {
 		log.Panicf("get the object of blockchain failed: %v", err)
 	}
-	err = db.View(func(tx *bolt.Tx) error {
+	if err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blockTableName))
 		if bucket != nil {
 			tip = bucket.Get([]byte("tip"))
 		}
 		return nil
-	})
+	}); err != nil {
+		log.Panicf("BlockChainObject: view db error: %v\n", err)
+	}
 
 	return &BlockChain{
 		DB:  db,
@@ -168,13 +170,12 @@ func (bc *BlockChain) MineNewBlock(from, to, amount []string) {
 	var (
 		txs   []*Transaction // 要打包的交易
 		block *Block
-		err   error
 	)
 	value, _ := strconv.Atoi(amount[0])
 	tx := NewSimpleTx(from[0], to[0], value)
 	txs = append(txs, tx)
 
-	err = bc.DB.View(func(tx *bolt.Tx) error { // 获取当前最新区块
+	if err := bc.DB.View(func(tx *bolt.Tx) error { // 获取当前最新区块
 		bucket := tx.Bucket([]byte(blockTableName))
 		if nil != nil {
 			h := bucket.Get([]byte("tip"))
@@ -182,13 +183,12 @@ func (bc *BlockChain) MineNewBlock(from, to, amount []string) {
 			block = Deserialize(data)
 		}
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		log.Panicf("MinBlock view db error: %v\n", err)
 	}
 
 	newBlock := NewBlock(block.Number+1, block.Hash, txs) // 打包的新区快
-	err = bc.DB.Update(func(tx *bolt.Tx) error {
+	if err := bc.DB.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blockTableName))
 		if bucket != nil {
 			if err := bucket.Put(newBlock.Hash, newBlock.Serialize()); err != nil { // 将打包的区块持久化
@@ -200,15 +200,14 @@ func (bc *BlockChain) MineNewBlock(from, to, amount []string) {
 			bc.Tip = newBlock.Hash
 		}
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		log.Panicf("MineBlock: update error: %v\n", err)
 	}
 }
 
-// 返回指定地址的余额
-func (bc *BlockChain) UnspentUTXO(addr string) []*TxOutput {
-	var utxos []*TxOutput
+// 返回指定地址的utxo
+func (bc *BlockChain) UnspentUTXO(addr string) []*UTXO {
+	var utxos []*UTXO
 	// 遍历区块链，查找与addr相关的所有交易
 	blockItr := bc.Iterator()
 	// 存储所有已花费的输出
@@ -227,7 +226,7 @@ func (bc *BlockChain) UnspentUTXO(addr string) []*TxOutput {
 				for _, in := range tx.Ins {
 					if in.UnlockWithAddress(addr) { // 验证地址
 						key := util.HexToString(in.Hash)
-						spentOutputs[key] = append(spentOutputs[key], in.OutputIndex)
+						spentOutputs[key] = append(spentOutputs[key], in.Vout)
 					}
 				}
 			}
@@ -240,12 +239,14 @@ func (bc *BlockChain) UnspentUTXO(addr string) []*TxOutput {
 								if txHash == util.HexToString(tx.Hash) && i == index {
 									continue
 								} else {
-									utxos = append(utxos, out)
+									utxo := &UTXO{Hash: tx.Hash, Vout: index, Output: out}
+									utxos = append(utxos, utxo)
 								}
 							}
 						}
 					} else { // 已花费输出为空
-						utxos = append(utxos, out)
+						utxo := &UTXO{Hash: tx.Hash, Vout: index, Output: out}
+						utxos = append(utxos, utxo)
 					}
 				}
 			}
@@ -254,4 +255,14 @@ func (bc *BlockChain) UnspentUTXO(addr string) []*TxOutput {
 	}
 
 	return utxos
+}
+
+// 查询指定地址的余额
+func (bc *BlockChain) GetBalance(addr string) int64 {
+	utxos := bc.UnspentUTXO(addr)
+	var amount int64
+	for _, utxo := range utxos {
+		amount += utxo.Output.Value
+	}
+	return amount
 }

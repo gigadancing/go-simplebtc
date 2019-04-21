@@ -17,7 +17,6 @@ type CLI struct {
 func Usage() {
 	fmt.Println("Usage:")
 	fmt.Printf("\tcreateblockchain -address addr --地址\n")
-	fmt.Printf("\tinsertblock -data DATA -- 交易数据\n")
 	fmt.Printf("\tprintblockchain -- 输出区块链信息\n")
 	fmt.Printf("\tsend -from FROM -to TO -amount AMOUNT -- 转账\n")
 	fmt.Printf("\tgetbalance -address FROM -- 查询余额\n")
@@ -32,61 +31,14 @@ func Validate() {
 	}
 }
 
-// 查询余额
-func (cli *CLI) getBalance(from string) {
-	// 获取指定地址的余额
-	// outputs := cli.BC.UnspentUTXO(from)
-}
-
-// 发送交易
-func (cli *CLI) send(from, to, amount []string) {
-	if !dbExist() {
-		fmt.Println("db not exist.")
-		os.Exit(1)
-	}
-	bc := BlockChainObject()
-	defer bc.DB.Close()
-	bc.MineNewBlock(from, to, amount)
-}
-
-// 添加区块
-func (cli *CLI) insertBlock(txs []*Transaction) {
-	if !dbExist() {
-		fmt.Println("db not exist")
-		os.Exit(1)
-	}
-	bc := BlockChainObject()
-	defer bc.DB.Close()
-	bc.InsertBlock(txs)
-}
-
-// 输出区块链信息
-func (cli *CLI) printBlockChain() {
-	if !dbExist() {
-		fmt.Println("db not exist")
-		os.Exit(1)
-	}
-	bc := BlockChainObject()
-	defer bc.DB.Close()
-	bc.PrintChain()
-}
-
-// 创建区块链
-func (cli *CLI) createBlockChain(address string) {
-	bc := NewBlockChain(address)
-	defer bc.DB.Close()
-}
-
 //
 func (cli *CLI) Run() {
 	Validate()
-	insertBlockCmd := flag.NewFlagSet("insertblock", flag.ExitOnError)
 	printBlockChainCmd := flag.NewFlagSet("printblockchain", flag.ExitOnError)
 	createBlockChainCmd := flag.NewFlagSet("newblockchain", flag.ExitOnError)
 	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
 	getBalanceCmd := flag.NewFlagSet("getbalance", flag.ExitOnError)
 	// 获得命令行参数
-	flagInsertBlockArg := insertBlockCmd.String("data", "send 100 BTC to everyone", "交易数据")
 	flagCreateBlockChainArg := createBlockChainCmd.String("address", "", "地址")
 	flagFromArg := sendCmd.String("from", "", "转账源地址")
 	flagToArg := sendCmd.String("to", "", "转账目标地址")
@@ -97,17 +49,13 @@ func (cli *CLI) Run() {
 		if err := sendCmd.Parse(os.Args[2:]); err != nil {
 			log.Panicf("parse cmd of send failed: %v\n", err)
 		}
-	case "insertblock":
-		if err := insertBlockCmd.Parse(os.Args[2:]); err != nil {
-			log.Panicf("parse cmd of insertblock failed:%v\n", err)
-		}
 	case "printblockchain:":
 		if err := printBlockChainCmd.Parse(os.Args[2:]); err != nil {
-			log.Panicf("parse cmd of printblockchain failed:%v\n", err)
+			log.Panicf("parse cmd of printblockchain failed: %v\n", err)
 		}
 	case "createblockchain":
 		if err := createBlockChainCmd.Parse(os.Args[2:]); err != nil {
-			log.Panicf("parse cmd of createblockchain failed:%v\n", err)
+			log.Panicf("parse cmd of createblockchain failed: %v\n", err)
 		}
 	case "getbalance":
 		if err := getBalanceCmd.Parse(os.Args[2:]); err != nil {
@@ -146,14 +94,6 @@ func (cli *CLI) Run() {
 		cli.getBalance(*flagGetBalanceArg)
 	}
 
-	if insertBlockCmd.Parsed() {
-		if *flagInsertBlockArg == "" {
-			Usage()
-			os.Exit(1)
-		}
-		cli.insertBlock([]*Transaction{})
-	}
-
 	if printBlockChainCmd.Parsed() {
 		cli.printBlockChain()
 	}
@@ -165,5 +105,4 @@ func (cli *CLI) Run() {
 		}
 		cli.createBlockChain(*flagCreateBlockChainArg)
 	}
-
 }
