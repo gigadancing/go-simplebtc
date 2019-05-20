@@ -173,7 +173,7 @@ func (bc *BlockChain) MineNewBlock(from, to, amount []string) {
 		block *Block
 	)
 	value, _ := strconv.Atoi(amount[0])
-	tx := NewSimpleTx(from[0], to[0], value)
+	tx := NewSimpleTx(from[0], to[0], value, bc)
 	txs = append(txs, tx)
 
 	if err := bc.DB.View(func(tx *bolt.Tx) error { // 获取当前最新区块

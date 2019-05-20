@@ -71,15 +71,15 @@ func NewSimpleTx(from, to string, amount int, chain *BlockChain) *Transaction {
 	}
 
 	// 转账
-	out := &TxOut{Value: int64(amount), ScriptPubkey: to}
+	out := &TxOut{int64(amount), to}
 	txOuts = append(txOuts, out)
 
 	// 找零
-	out = &TxOut{Value: value - int64(amount), ScriptPubkey: from}
+	out = &TxOut{value - int64(amount), from}
 	txOuts = append(txOuts, out)
 
 	// 生成交易
-	tx := &Transaction{Hash: nil, Vin: txIns, Vout: txOuts}
+	tx := &Transaction{nil, txIns, txOuts}
 	tx.TxHash()
 
 	return tx
