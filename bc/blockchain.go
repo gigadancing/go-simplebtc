@@ -1,6 +1,7 @@
 package bc
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"log"
@@ -264,4 +265,29 @@ func (bc *BlockChain) GetBalance(addr string) int64 {
 		amount += utxo.Output.Value
 	}
 	return amount
+}
+
+// 转账
+// 通过查找可用的UTXO，超过需要的资金即可中断查找
+func (bc *BlockChain) FindSpendableUTXO(from string, amount int64) (int64, map[string][]int) {
+	var (
+		value         int64
+		spendableUTXO = make(map[string][]int)
+	)
+	utxos := bc.UnspentUTXO(from)
+	for _, utxo := range utxos {
+		value += utxo.Output.Value
+		h := hex.EncodeToString(utxo.Hash)
+		spendableUTXO[h] = append(spendableUTXO[h], utxo.Index)
+		if value >= amount {
+			break
+		}
+	}
+
+	if value < amount {
+		fmt.Printf("%s 余额不足\n", from)
+		os.Exit(1)
+	}
+
+	return value, spendableUTXO
 }

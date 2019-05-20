@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/hex"
 	"log"
 )
 
@@ -49,36 +50,38 @@ func NewCoinbaseTx(address string) *Transaction {
 }
 
 // 转账交易
-func NewSimpleTx(from, to string, amount int) *Transaction {
+func NewSimpleTx(from, to string, amount int, chain *BlockChain) *Transaction {
 	var (
-		txsIn  []*TxIn
-		txsOut []*TxOut
+		txIns  []*TxIn
+		txOuts []*TxOut
 	)
-	in := &TxIn{ // 消费
-		Prevout: OutPoint{
-			Hash:  nil,
-			Index: 0,
-		},
-		ScriptSig: from,
-	}
-	txsIn = append(txsIn, in)
-	out := &TxOut{ // 转账
-		Value:        int64(amount),
-		ScriptPubkey: to,
-	}
-	txsOut = append(txsOut, out)
-	out = &TxOut{ // 找零
-		Value:        10 - int64(amount),
-		ScriptPubkey: from,
-	}
-	txsOut = append(txsOut, out)
 
-	tx := &Transaction{
-		Hash: nil,
-		Vin:  txsIn,
-		Vout: txsOut,
+	// 查找指定地址的可用UTXO
+	value, spendableUTXO := chain.FindSpendableUTXO(from, int64(amount))
+	for txhash, indexArray := range spendableUTXO {
+		hashBytes, _ := hex.DecodeString(txhash)
+		for _, index := range indexArray {
+			// 此处的输出是需要消费的，必然会被其他的交易输入所引用
+			txin := &TxIn{
+				Prevout:   OutPoint{hashBytes, index},
+				ScriptSig: from,
+			}
+			txIns = append(txIns, txin)
+		}
 	}
+
+	// 转账
+	out := &TxOut{Value: int64(amount), ScriptPubkey: to}
+	txOuts = append(txOuts, out)
+
+	// 找零
+	out = &TxOut{Value: value - int64(amount), ScriptPubkey: from}
+	txOuts = append(txOuts, out)
+
+	// 生成交易
+	tx := &Transaction{Hash: nil, Vin: txIns, Vout: txOuts}
 	tx.TxHash()
+
 	return tx
 }
 
