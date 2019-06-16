@@ -50,14 +50,14 @@ func NewCoinbaseTx(address string) *Transaction {
 }
 
 // 转账交易
-func NewSimpleTx(from, to string, amount int, chain *BlockChain) *Transaction {
+func NewSimpleTx(from, to string, amount int, chain *BlockChain, txs []*Transaction) *Transaction {
 	var (
 		txIns  []*TxIn
 		txOuts []*TxOut
 	)
 
 	// 查找指定地址的可用UTXO
-	value, spendableUTXO := chain.FindSpendableUTXO(from, int64(amount))
+	value, spendableUTXO := chain.FindSpendableUTXO(from, int64(amount), txs)
 	for txhash, indexArray := range spendableUTXO {
 		hashBytes, _ := hex.DecodeString(txhash)
 		for _, index := range indexArray {

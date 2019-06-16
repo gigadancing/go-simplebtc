@@ -176,7 +176,7 @@ func (bc *BlockChain) MineNewBlock(from, to, amount []string) {
 	// 多笔交易
 	for index, addr := range from {
 		value, _ := strconv.Atoi(amount[index])
-		tx := NewSimpleTx(addr, to[index], value, bc)
+		tx := NewSimpleTx(addr, to[index], value, bc, txs)
 		txs = append(txs, tx)
 	}
 
@@ -211,30 +211,86 @@ func (bc *BlockChain) MineNewBlock(from, to, amount []string) {
 }
 
 // 返回指定地址的utxo
-func (bc *BlockChain) UnspentUTXO(addr string) []*UTXO {
-	var utxos []*UTXO         // 未花费的交易输出
-	blockItr := bc.Iterator() // 区块迭代器
-
+func (bc *BlockChain) UnspentUTXO(addr string, txs []*Transaction) []*UTXO {
+	var utxos []*UTXO // 未花费的交易输出
 	// key：每个input所引用交易的哈希
 	// value：output索引列表
 	spentOutputs := make(map[string][]int) // 已花费的交易输出
+	// 查找缓存（未打包）的交易中是否有改地址的utxo
+	for _, tx := range txs { // 先查找输入
+		if !tx.IsCoinbaseTx() { // 普通交易
+			for _, in := range tx.Vin {
+				if in.UnlockWithAddress(addr) { // 验证地址
+					key := util.HexToString(in.Prevout.Hash)
+					spentOutputs[key] = append(spentOutputs[key], in.Prevout.Index)
+				}
+			}
+		}
+		// 查找缓存输出与数据库输出
+	WorkCacheTx:
+		for index, vout := range tx.Vout {
+			if vout.UnlockScripPubkeyWithAddress(addr) {
+				if len(spentOutputs) != 0 {
+					var isUTXO bool
+					for txHash, indexArray := range spentOutputs {
+						txHashStr := hex.EncodeToString(tx.Hash)
+						if txHashStr == txHash {
+							isUTXO = true
+							var isSpentUTXO bool
+							for _, voutIndex := range indexArray {
+								if index == voutIndex {
+									isSpentUTXO = true
+									continue WorkCacheTx
+								}
+							}
+							if !isSpentUTXO {
+								utxo := &UTXO{Hash: tx.Hash, Index: index, Output: vout}
+								utxos = append(utxos, utxo)
+							}
+						}
+					}
+					if !isUTXO {
+						utxo := &UTXO{Hash: tx.Hash, Index: index, Output: vout}
+						utxos = append(utxos, utxo)
+					}
+				} else {
+					utxo := &UTXO{Hash: tx.Hash, Index: index, Output: vout}
+					utxos = append(utxos, utxo)
+				}
 
+			}
+		}
+	}
+
+	blockItr := bc.Iterator() // 区块迭代器
+	for {
+		block := blockItr.Block()
+		for _, tx := range block.Txs {
+			if !tx.IsCoinbaseTx() {
+				for _, in := range tx.Vin {
+					if in.UnlockWithAddress(addr) {
+						key := hex.EncodeToString(in.Prevout.Hash)
+						spentOutputs[key] = append(spentOutputs[key], in.Prevout.Index)
+					}
+				}
+			}
+		}
+		// 退出循环
+		var hashInt big.Int
+		hashInt.SetBytes(block.Parent)
+		if hashInt.Cmp(big.NewInt(0)) == 0 {
+			break
+		}
+	}
+	// 通过判断查找utxo
+	blockItr = bc.Iterator()
 	for {
 		block := blockItr.Block()   // 返回迭代器对应的区块
 		if len(block.Parent) == 0 { // 到达创世块
 			break
 		}
 		for _, tx := range block.Txs { // 遍历每个区块的交易
-			// 查找输入
-			if !tx.IsCoinbaseTx() { // 普通交易
-				for _, in := range tx.Vin {
-					if in.UnlockWithAddress(addr) { // 验证地址
-						key := util.HexToString(in.Prevout.Hash)
-						spentOutputs[key] = append(spentOutputs[key], in.Prevout.Index)
-					}
-				}
-			}
-		WORK:
+		WorkDbTx:
 			// 查找输出
 			for index, out := range tx.Vout {
 				if out.UnlockScripPubkeyWithAddress(addr) { // 验证输出是否属于传入地址
@@ -244,7 +300,7 @@ func (bc *BlockChain) UnspentUTXO(addr string) []*UTXO {
 							for _, i := range indexArray {
 								if txHash == util.HexToString(tx.Hash) && i == index {
 									isSpentUTXO = true
-									continue WORK
+									continue WorkDbTx
 								}
 
 							}
@@ -268,7 +324,7 @@ func (bc *BlockChain) UnspentUTXO(addr string) []*UTXO {
 
 // 查询指定地址的余额
 func (bc *BlockChain) GetBalance(addr string) int64 {
-	utxos := bc.UnspentUTXO(addr)
+	utxos := bc.UnspentUTXO(addr, nil)
 	var amount int64
 	for _, utxo := range utxos {
 		amount += utxo.Output.Value
@@ -278,12 +334,12 @@ func (bc *BlockChain) GetBalance(addr string) int64 {
 
 // 转账
 // 通过查找可用的UTXO，超过需要的资金即可中断查找
-func (bc *BlockChain) FindSpendableUTXO(from string, amount int64) (int64, map[string][]int) {
+func (bc *BlockChain) FindSpendableUTXO(from string, amount int64, txs []*Transaction) (int64, map[string][]int) {
 	var (
 		value         int64
 		spendableUTXO = make(map[string][]int)
 	)
-	utxos := bc.UnspentUTXO(from)
+	utxos := bc.UnspentUTXO(from, txs)
 	for _, utxo := range utxos {
 		value += utxo.Output.Value
 		h := hex.EncodeToString(utxo.Hash)
