@@ -172,9 +172,13 @@ func (bc *BlockChain) MineNewBlock(from, to, amount []string) {
 		txs   []*Transaction // 要打包的交易
 		block *Block
 	)
-	value, _ := strconv.Atoi(amount[0])
-	tx := NewSimpleTx(from[0], to[0], value, bc)
-	txs = append(txs, tx)
+
+	// 多笔交易
+	for index, addr := range from {
+		value, _ := strconv.Atoi(amount[index])
+		tx := NewSimpleTx(addr, to[index], value, bc)
+		txs = append(txs, tx)
+	}
 
 	if err := bc.DB.View(func(tx *bolt.Tx) error { // 获取当前最新区块
 		bucket := tx.Bucket([]byte(blockTableName))
@@ -230,19 +234,24 @@ func (bc *BlockChain) UnspentUTXO(addr string) []*UTXO {
 					}
 				}
 			}
+		WORK:
 			// 查找输出
 			for index, out := range tx.Vout {
 				if out.UnlockScripPubkeyWithAddress(addr) { // 验证输出是否属于传入地址
 					if len(spentOutputs) != 0 { // 已花费输出不为空
+						var isSpentUTXO bool
 						for txHash, indexArray := range spentOutputs {
 							for _, i := range indexArray {
 								if txHash == util.HexToString(tx.Hash) && i == index {
-									continue
-								} else {
-									utxo := &UTXO{Hash: tx.Hash, Index: index, Output: out}
-									utxos = append(utxos, utxo)
+									isSpentUTXO = true
+									continue WORK
 								}
+
 							}
+						}
+						if isSpentUTXO { // 只有遍历完整个spentOutputs都没有找到，才能说明out是一个违法费输出
+							utxo := &UTXO{Hash: tx.Hash, Index: index, Output: out}
+							utxos = append(utxos, utxo)
 						}
 					} else { // 已花费输出为空
 						utxo := &UTXO{Hash: tx.Hash, Index: index, Output: out}

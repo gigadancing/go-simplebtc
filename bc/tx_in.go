@@ -1,9 +1,9 @@
 package bc
 
-// 交易输入所指向的UTXO
+// 交易输入所引用的UTXO
 type OutPoint struct {
-	Hash  []byte // UTXO所在交易的哈希
-	Index int    // UTXO的索引
+	Hash  []byte // 引用交易的哈希
+	Index int    // 引用交易的output索引
 }
 
 // 交易输入
