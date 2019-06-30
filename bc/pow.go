@@ -49,7 +49,7 @@ func (pow *POW) Run() ([]byte, int64) {
 // 准备数据，将区块相关属性拼接返回一个字节数组
 func (pow *POW) PrepareData(nonce int64) []byte {
 	data := bytes.Join([][]byte{
-		pow.Block.Parent,
+		pow.Block.PrevHash,
 		pow.Block.TxsHash(),
 		util.IntToHex(pow.Block.Timestamp),
 		util.IntToHex(pow.Block.Number),

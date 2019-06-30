@@ -13,7 +13,7 @@ type Block struct {
 	Timestamp int64  // 时间戳，区块产生的时间
 	Number    int64  // 区块高度（索引、ID）
 	Nonce     int64  //
-	Parent    []byte // 父区块哈希
+	PrevHash  []byte // 父区块哈希
 	Hash      []byte // 当前区块哈希
 	Txs       []*Transaction
 }
@@ -22,7 +22,7 @@ type Block struct {
 func NewBlock(num int64, parentHash []byte, txs []*Transaction) *Block {
 	block := Block{
 		Number:    num,
-		Parent:    parentHash,
+		PrevHash:  parentHash,
 		Txs:       txs,
 		Timestamp: time.Now().Unix(),
 	}

@@ -42,7 +42,7 @@ func (bcit *BlockChainIterator) Next() {
 		bucket := tx.Bucket([]byte(blockTableName))
 		if bucket != nil {
 			block := bcit.Block()
-			bcit.Hash = block.Parent // 更新迭代器
+			bcit.Hash = block.PrevHash // 更新迭代器
 		}
 		return nil
 	}); err != nil {

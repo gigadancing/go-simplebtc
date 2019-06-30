@@ -131,8 +131,8 @@ func (bc *BlockChain) PrintChain() {
 	for {
 		curBlock = itr.Block()
 		fmt.Printf("Height:%d,Timstamp:%d,Parent:%x,Hash:%x,Data:%v,Nonce:%d\n", curBlock.Number,
-			curBlock.Timestamp, curBlock.Parent, curBlock.Hash, curBlock.Txs, curBlock.Nonce)
-		hashInt := big.NewInt(0).SetBytes(curBlock.Parent)
+			curBlock.Timestamp, curBlock.PrevHash, curBlock.Hash, curBlock.Txs, curBlock.Nonce)
+		hashInt := big.NewInt(0).SetBytes(curBlock.PrevHash)
 		if big.NewInt(0).Cmp(hashInt) == 0 { // 到达创世块
 			break
 		}
