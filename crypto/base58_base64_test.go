@@ -1,4 +1,4 @@
-package main
+package crypto
 
 import (
 	"crypto/sha256"
@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"github.com/mr-tron/base58"
 	"golang.org/x/crypto/ripemd160"
+	"testing"
 )
 
-func main() {
+func TestBase58And64(t *testing.T) {
 	hasher := sha256.New()
 	hasher.Write([]byte("themoonstone"))
 	bytes := hasher.Sum(nil)
