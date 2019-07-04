@@ -1,7 +1,6 @@
 package crypto
 
 import (
-	"bytes"
 	"crypto/cipher"
 	"crypto/des"
 	"encoding/hex"
@@ -11,24 +10,11 @@ import (
 
 // DES算法把64位的明文输入块变为64位的密文输出块,它所使用的密钥也是64位（实际用到了56位，
 // 第8、16、24、32、40、48、56、64位是校验位， 使得每个密钥都有奇数个1）
-//
-
-// 填充最后一个分组
-// src：待填充的数据 blockSize：分组大小
-func PaddingText(src []byte, blockSize int) []byte {
-	padding := blockSize - len(src)%blockSize                   // 最后一个分组需要填充的字节数
-	paddingText := bytes.Repeat([]byte{byte(padding)}, padding) // 填充的数据
-	text := append(src, paddingText...)                         // 将填充的数据和源数据进行拼接
-	return text
-}
-
-// 删除填充数据
-func UnpaddingText(src []byte) []byte {
-	l := len(src)
-	num := int(src[l-1])
-	text := src[:l-num]
-	return text
-}
+// 模式
+//     CBC(Cipher Block Chaining)，密文分组链接模式
+//     ECB(Electronic CodeBook)，电子密码本模式
+//     CFB(Cipher FeedBack)，密文反馈模式：前一个密文分组会被送回到密码算法的输入
+//     OFB(Output FeedBack)，输出反馈模式：密码算法的出处会反馈到密码算法的输入
 
 // 使用des算法进行家吗
 // src：待加密铭文 key：秘钥
