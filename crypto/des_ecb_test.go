@@ -41,7 +41,7 @@ func DesEcbDecrypt(src, key []byte) []byte {
 		dst = dst[l:]
 	}
 
-	return out
+	return ZeroUnpadding(out)
 }
 
 func TestDesEcbEncrypt(t *testing.T) {
