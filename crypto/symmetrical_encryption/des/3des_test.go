@@ -1,10 +1,11 @@
-package crypto
+package des
 
 import (
 	"crypto/cipher"
 	"crypto/des"
 	"encoding/hex"
 	"fmt"
+	"simplebtc/crypto/symmetrical_encryption"
 	"testing"
 )
 
@@ -22,7 +23,7 @@ func Encrypt3Des(src, key []byte) []byte {
 		panic(err)
 	}
 
-	text := PaddingText(src, cipherBlock.BlockSize())
+	text := symmetrical_encryption.PaddingText(src, cipherBlock.BlockSize())
 	mode := cipher.NewCBCEncrypter(cipherBlock, key[:cipherBlock.BlockSize()])
 	dst := make([]byte, len(text))
 	mode.CryptBlocks(dst, text)
@@ -40,14 +41,14 @@ func Decrypt3Des(src, key []byte) []byte {
 	mode := cipher.NewCBCDecrypter(cipherBlock, key[:cipherBlock.BlockSize()])
 	dst := make([]byte, len(src))
 	mode.CryptBlocks(dst, src)
-	dst = UnpaddingText(dst)
+	dst = symmetrical_encryption.UnpaddingText(dst)
+
 	return dst
 }
 
 func Test3Des(t *testing.T) {
 	key := []byte("12345678abcdefgh87654321")
 	data := []byte("hello world")
-
 	fmt.Println("明文：", string(data))
 	encrypted := Encrypt3Des(data, key)
 	fmt.Println("3DES加密后：", hex.EncodeToString(encrypted))

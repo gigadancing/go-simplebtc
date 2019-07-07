@@ -1,4 +1,4 @@
-package crypto
+package symmetrical_encryption
 
 import "bytes"
 
@@ -7,7 +7,8 @@ import "bytes"
 func PaddingText(src []byte, blockSize int) []byte {
 	padding := blockSize - len(src)%blockSize                   // 最后一个分组需要填充的字节数
 	paddingText := bytes.Repeat([]byte{byte(padding)}, padding) // 填充的数据
-	text := append(src, paddingText...)                         // 将填充的数据和源数据进行拼接
+	text := append(src, paddingText...)
+	// 将填充的数据和源数据进行拼接
 	return text
 }
 
@@ -16,6 +17,7 @@ func UnpaddingText(src []byte) []byte {
 	l := len(src)
 	num := int(src[l-1])
 	text := src[:l-num]
+
 	return text
 }
 
@@ -23,6 +25,7 @@ func UnpaddingText(src []byte) []byte {
 func ZeroPadding(src []byte, blockSize int) []byte {
 	padding := blockSize - len(src)%blockSize
 	paddingText := bytes.Repeat([]byte{0}, padding)
+
 	return append(src, paddingText...)
 }
 

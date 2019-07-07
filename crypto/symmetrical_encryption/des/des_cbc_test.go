@@ -1,10 +1,11 @@
-package crypto
+package des
 
 import (
 	"crypto/cipher"
 	"crypto/des"
 	"encoding/hex"
 	"fmt"
+	"simplebtc/crypto/symmetrical_encryption"
 	"testing"
 )
 
@@ -23,12 +24,14 @@ func EncryptDes(src, key []byte) []byte {
 	if err != nil {
 		panic(err)
 	}
-	l := block.BlockSize()                    // 块的大小
-	text := PaddingText(src, l)               // 对源数据填充
-	iv := []byte("12345678")                  // 初始化向量
-	mode := cipher.NewCBCEncrypter(block, iv) // 创建CBC加密模式
+
+	l := block.BlockSize()                             // 块的大小
+	text := symmetrical_encryption.PaddingText(src, l) // 对源数据填充
+	iv := []byte("12345678")                           // 初始化向量
+	mode := cipher.NewCBCEncrypter(block, iv)          // 创建CBC加密模式
 	encrypted := make([]byte, len(text))
 	mode.CryptBlocks(encrypted, text)
+
 	return encrypted
 }
 
@@ -39,12 +42,13 @@ func DecryptDes(src, key []byte) []byte {
 	if err != nil {
 		panic(err)
 	}
+
 	iv := []byte("12345678")
 	mode := cipher.NewCBCDecrypter(block, iv) // 创建CBC解密模式
 	decrypted := make([]byte, len(src))
 	mode.CryptBlocks(decrypted, src)
 
-	return UnpaddingText(decrypted)
+	return symmetrical_encryption.UnpaddingText(decrypted)
 }
 
 func TestEncryptDes(t *testing.T) {

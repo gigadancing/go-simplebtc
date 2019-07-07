@@ -1,9 +1,10 @@
-package crypto
+package des
 
 import (
 	"crypto/des"
 	"encoding/hex"
 	"fmt"
+	"simplebtc/crypto/symmetrical_encryption"
 	"testing"
 )
 
@@ -13,9 +14,10 @@ func DesEcbEncrypt(src, key []byte) []byte {
 	if err != nil {
 		panic(err)
 	}
-	l := cipherBlock.BlockSize()   // 8字节
-	data := ZeroPadding(src, l)    // 尾部填充0
-	out := make([]byte, len(data)) // 加密后的密文
+
+	l := cipherBlock.BlockSize()                       // 8字节
+	data := symmetrical_encryption.ZeroPadding(src, l) // 尾部填充0
+	out := make([]byte, len(data))                     // 加密后的密文
 	dst := out
 	for len(data) > 0 {
 		cipherBlock.Encrypt(dst, data[:l]) // 每次加密8字节
@@ -32,6 +34,7 @@ func DesEcbDecrypt(src, key []byte) []byte {
 	if err != nil {
 		panic(err)
 	}
+
 	l := cipherBlock.BlockSize()
 	out := make([]byte, len(src))
 	dst := out
@@ -41,7 +44,7 @@ func DesEcbDecrypt(src, key []byte) []byte {
 		dst = dst[l:]
 	}
 
-	return ZeroUnpadding(out)
+	return symmetrical_encryption.ZeroUnpadding(out)
 }
 
 func TestDesEcbEncrypt(t *testing.T) {
@@ -49,7 +52,6 @@ func TestDesEcbEncrypt(t *testing.T) {
 	data := []byte("hello world")
 	encrypted := DesEcbEncrypt(data, key)
 	fmt.Println("加密后密文：", hex.EncodeToString(encrypted))
-
 	src := DesEcbDecrypt(encrypted, key)
 	fmt.Println("解密后：", string(src))
 }

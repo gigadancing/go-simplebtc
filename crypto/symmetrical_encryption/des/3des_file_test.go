@@ -1,4 +1,4 @@
-package crypto
+package des
 
 import (
 	"bytes"
@@ -25,6 +25,7 @@ func genKey(key []byte) []byte {
 		}
 		kkey = append(kkey, key[:mod]...)
 	}
+
 	return kkey
 }
 
