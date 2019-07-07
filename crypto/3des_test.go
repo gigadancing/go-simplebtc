@@ -14,8 +14,8 @@ import (
 // 当3DES所有秘钥都相同时，3DES也就是普通的DES。因此DES加密的密文也可以使用3DES来进行解密。
 // 密码算法不能依靠算法的不公开性来保证密码算法的安全性。反而应该公开算法思想，如果大家都不能破解，才是安全的密码算法。
 //
-//
 
+// 3DES加密
 func Encrypt3Des(src, key []byte) []byte {
 	cipherBlock, err := des.NewTripleDESCipher(key)
 	if err != nil {
@@ -30,7 +30,7 @@ func Encrypt3Des(src, key []byte) []byte {
 	return dst
 }
 
-//
+// 3DES解密
 func Decrypt3Des(src, key []byte) []byte {
 	cipherBlock, err := des.NewTripleDESCipher(key)
 	if err != nil {
