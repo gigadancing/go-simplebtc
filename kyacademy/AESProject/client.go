@@ -44,10 +44,10 @@ func AESEncrypt(src []byte, key []byte) []byte {
 func main() {
 	crypted := AESEncrypt([]byte("helloworld"), []byte("2113648236482368"))
 	// 构建服务器连接
-	conn, _ := net.ResolveTCPAddr("tcp", ":10086")
+	addr, _ := net.ResolveTCPAddr("tcp", ":10086")
 	// 连接拨号
-	n, _ := net.DialTCP("tcp", nil, conn)
+	conn, _ := net.DialTCP("tcp", nil, addr)
 	// 发送数据
-	_, _ = n.Write(crypted)
+	_, _ = conn.Write(crypted)
 	fmt.Println("send over")
 }

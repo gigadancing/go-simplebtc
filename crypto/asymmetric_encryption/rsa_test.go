@@ -133,7 +133,7 @@ func TestRsaEncrypt(t *testing.T) {
 }
 
 func TestRsaGenKey(t *testing.T) {
-	if err := RsaGenKey(256); err != nil {
+	if err := RsaGenKey(1024); err != nil {
 		panic(err)
 	}
 }

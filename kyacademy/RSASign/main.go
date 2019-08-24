@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/rsa"
@@ -34,9 +35,30 @@ func crypt() {
 
 // 私钥签名，公钥验证
 func sign() {
-
+	// 创建私钥
+	priv, _ := rsa.GenerateKey(rand.Reader, 1024)
+	// 创建公钥
+	pub := priv.PublicKey
+	// 明文
+	src := []byte("block chain is very good.")
+	// 对明文散列
+	h := md5.New()
+	h.Write(src)
+	hashed := h.Sum(nil)
+	// 私钥签名
+	// 数字签名的作用是验证是否被篡改，A->B，当B收到数据时，验证是否由A传递的消息
+	opts := rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthAuto, Hash: crypto.MD5}
+	sig, _ := rsa.SignPSS(rand.Reader, priv, crypto.MD5, hashed, &opts)
+	fmt.Println("签名结果：", sig)
+	// 公钥验证签名
+	err := rsa.VerifyPSS(&pub, crypto.MD5, hashed, sig, &opts)
+	if err != nil {
+		fmt.Println("验证失败...")
+	}
+	fmt.Println("验证成功...")
 }
 
 func main() {
 	crypt()
+	sign()
 }
